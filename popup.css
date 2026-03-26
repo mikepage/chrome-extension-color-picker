@@ -1,0 +1,105 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 240px;
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  margin: 0;
+}
+
+.pick-btn {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #4688f1;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pick-btn:hover {
+  background: #3b7de0;
+}
+
+.pick-btn svg {
+  flex-shrink: 0;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.hex {
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 13px;
+  flex: 1;
+  user-select: all;
+}
+
+.copy-btn {
+  padding: 4px 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #333;
+}
+
+.copy-btn:hover {
+  background: #eee;
+}
+
+.label {
+  font-size: 11px;
+  color: #999;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
+.history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.history-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.history-swatch:hover {
+  transform: scale(1.15);
+  border-color: #aaa;
+}

@@ -1,10 +1,24 @@
 <!doctype html>
 <html>
   <head>
-    <link rel="stylesheet" href="button.css" />
+    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <button id="changeColor"></button>
+    <button id="pickColor" class="pick-btn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M13.354 2.646a2.12 2.12 0 00-3 0L8.854 4.146l-.708-.708a.5.5 0 00-.707.708l.354.353-4.647 4.647a.5.5 0 00-.136.255l-.707 2.828a.5.5 0 00.607.608l2.828-.708a.5.5 0 00.255-.136l4.647-4.646.353.353a.5.5 0 00.708-.707l-.708-.708 1.5-1.5a2.12 2.12 0 000-3z"/>
+      </svg>
+      Pick Color
+    </button>
+    <div id="result" class="result hidden">
+      <div id="colorSwatch" class="swatch"></div>
+      <span id="colorHex" class="hex"></span>
+      <button id="copyColor" class="copy-btn">Copy</button>
+    </div>
+    <div id="historySection" class="hidden">
+      <div class="label">Recent</div>
+      <div id="history" class="history"></div>
+    </div>
     <script src="popup.js"></script>
   </body>
 </html>
