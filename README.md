@@ -65,6 +65,14 @@ This extension **does not collect, transmit, or store any user data** outside of
 | Does the extension use third-party libraries? | No |
 | Data usage categories | None |
 
+### Permission justifications
+
+| Permission | Justification |
+|---|---|
+| `storage` | Stores the user's last 10 picked colors locally in chrome.storage.sync so they appear in the popup's color history. No data is transmitted externally. |
+| `activeTab` | Needed to access the current tab when the user clicks "Pick Color" in the popup. The extension injects the eyedropper script into the active tab to detect colors of hovered elements. Access is only granted for the tab the user explicitly interacts with. |
+| `scripting` | Used to inject the eyedropper content script (content/eyedropper.js) into the active tab when the user initiates color picking. The script highlights elements on hover and reads their computed color on click. |
+
 ## License
 
 MIT
