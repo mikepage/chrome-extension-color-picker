@@ -11,12 +11,12 @@ export function activateEyedropper() {
   document.body.appendChild(marker);
 
   // Inject page-level styles (highlight + cursor)
-  const style = document.createElement('style');
-  style.textContent = `
+  const pickerStyle = document.createElement('style');
+  pickerStyle.textContent = `
     .__cp-highlight { outline: 2px solid #4688f1 !important; outline-offset: -1px !important; }
     .__cp-overlay, .__cp-overlay * { cursor: crosshair !important; }
   `;
-  document.head.appendChild(style);
+  document.head.appendChild(pickerStyle);
   document.body.classList.add('__cp-overlay');
 
   // Shadow DOM host for toast/hint — isolates from page CSS
@@ -24,11 +24,11 @@ export function activateEyedropper() {
   uiHost.id = '__cp-ui';
   uiHost.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;';
   document.body.appendChild(uiHost);
-  const shadow = uiHost.attachShadow({ mode: 'closed' });
+  const shadowRoot = uiHost.attachShadow({ mode: 'closed' });
 
   // Use adoptedStyleSheets for shadow DOM (no extra DOM node)
-  const sheet = new CSSStyleSheet();
-  sheet.replaceSync(`
+  const styleSheet = new CSSStyleSheet();
+  styleSheet.replaceSync(`
     .toast {
       position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 8px;
@@ -47,38 +47,38 @@ export function activateEyedropper() {
       white-space: nowrap; pointer-events: auto;
     }
   `);
-  shadow.adoptedStyleSheets = [sheet];
+  shadowRoot.adoptedStyleSheets = [styleSheet];
 
   // Toast template for cloneNode reuse
-  const toastTpl = document.createElement('template');
-  toastTpl.innerHTML = '<div class="toast"><div class="toast-swatch"></div></div>';
+  const toastTemplate = document.createElement('template');
+  toastTemplate.innerHTML = '<div class="toast"><div class="toast-swatch"></div></div>';
 
   // Show usage hint
-  const hint = document.createElement('div');
-  hint.className = 'hint';
-  hint.textContent = 'Click text \u2192 text color \u00b7 Click bg \u2192 bg color \u00b7 Shift \u2192 force bg \u00b7 Esc \u2192 cancel';
-  shadow.appendChild(hint);
+  const hintElement = document.createElement('div');
+  hintElement.className = 'hint';
+  hintElement.textContent = 'Click text \u2192 text color \u00b7 Click bg \u2192 bg color \u00b7 Shift \u2192 force bg \u00b7 Esc \u2192 cancel';
+  shadowRoot.appendChild(hintElement);
 
-  let hoveredEl = null;
+  let hoveredElement = null;
 
-  function onMouseOver(e) {
-    if (hoveredEl) hoveredEl.classList.remove('__cp-highlight');
-    hoveredEl = e.target;
-    hoveredEl.classList.add('__cp-highlight');
+  function onMouseOver(event) {
+    if (hoveredElement) hoveredElement.classList.remove('__cp-highlight');
+    hoveredElement = event.target;
+    hoveredElement.classList.add('__cp-highlight');
   }
 
-  function onMouseOut(e) {
-    e.target.classList.remove('__cp-highlight');
-    if (hoveredEl === e.target) hoveredEl = null;
+  function onMouseOut(event) {
+    event.target.classList.remove('__cp-highlight');
+    if (hoveredElement === event.target) hoveredElement = null;
   }
 
   function rgbToHex(rgb) {
-    const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d*\.?\d+))?\)/);
-    if (!m) return rgb;
-    const hex = [m[1], m[2], m[3]].map(x => (+x).toString(16).padStart(2, '0')).join('');
-    const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
-    if (a < 1) {
-      return '#' + hex + Math.round(a * 255).toString(16).padStart(2, '0');
+    const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d*\.?\d+))?\)/);
+    if (!match) return rgb;
+    const hex = [match[1], match[2], match[3]].map(channel => (+channel).toString(16).padStart(2, '0')).join('');
+    const alpha = match[4] !== undefined ? parseFloat(match[4]) : 1;
+    if (alpha < 1) {
+      return '#' + hex + Math.round(alpha * 255).toString(16).padStart(2, '0');
     }
     return '#' + hex;
   }
@@ -98,10 +98,10 @@ export function activateEyedropper() {
       return target.querySelector(SVG_SHAPES) || target;
     }
     // Check elements at click point (handles z-stacking)
-    for (const el of document.elementsFromPoint(x, y)) {
-      if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) return el;
-      if (el instanceof SVGSVGElement) {
-        return el.querySelector(SVG_SHAPES) || el;
+    for (const element of document.elementsFromPoint(x, y)) {
+      if (element instanceof SVGElement && !(element instanceof SVGSVGElement)) return element;
+      if (element instanceof SVGSVGElement) {
+        return element.querySelector(SVG_SHAPES) || element;
       }
     }
     // Fallback: target contains SVG with pointer-events:none
@@ -113,71 +113,83 @@ export function activateEyedropper() {
   }
 
   // Walk up the DOM to find the first non-transparent background
-  function getEffectiveBg(el) {
-    let cur = el;
-    while (cur) {
-      const bg = getComputedStyle(cur).backgroundColor;
-      if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
-      cur = cur.parentElement;
+  function getEffectiveBackground(element) {
+    let current = element;
+    while (current) {
+      const background = getComputedStyle(current).backgroundColor;
+      if (background && background !== 'rgba(0, 0, 0, 0)' && background !== 'transparent') return background;
+      current = current.parentElement;
     }
     return 'rgb(255, 255, 255)';
   }
 
   // Walk up SVG tree to find the first non-none fill
-  function getEffectiveFill(el) {
-    let cur = el;
-    while (cur && cur instanceof SVGElement) {
-      const fill = getComputedStyle(cur).fill;
+  function getEffectiveFill(element) {
+    let current = element;
+    while (current && current instanceof SVGElement) {
+      const fill = getComputedStyle(current).fill;
       if (fill && fill !== 'none' && !fill.startsWith('url(')) return fill;
-      cur = cur.parentElement;
+      current = current.parentElement;
     }
-    return getEffectiveBg(cur || document.body);
+    return getEffectiveBackground(current || document.body);
   }
 
-  function getEffectiveStroke(el) {
-    let cur = el;
-    while (cur && cur instanceof SVGElement) {
-      const stroke = getComputedStyle(cur).stroke;
+  function getEffectiveStroke(element) {
+    let current = element;
+    while (current && current instanceof SVGElement) {
+      const stroke = getComputedStyle(current).stroke;
       if (stroke && stroke !== 'none' && !stroke.startsWith('url(')) return stroke;
-      cur = cur.parentElement;
+      current = current.parentElement;
     }
-    return getComputedStyle(el).color;
+    return getComputedStyle(element).color;
   }
 
   // Block mousedown/mouseup so page JS handlers on buttons/links don't fire
-  function blockEvent(e) {
-    e.preventDefault();
-    e.stopPropagation();
+  function blockEvent(event) {
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   // Pick color on click — preventDefault here stops link navigation
-  function onClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
+  function onClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
 
     let raw;
-    const svgEl = findSVGElement(e.target, e.clientX, e.clientY);
+    const svgElement = findSVGElement(event.target, event.clientX, event.clientY);
 
-    if (svgEl) {
+    if (svgElement) {
       // SVG element found — pick fill or stroke
-      raw = e.shiftKey ? getEffectiveStroke(svgEl) : getEffectiveFill(svgEl);
-    } else if (e.shiftKey) {
+      raw = event.shiftKey ? getEffectiveStroke(svgElement) : getEffectiveFill(svgElement);
+    } else if (event.shiftKey) {
       // Shift+click forces background color
-      raw = getEffectiveBg(e.target);
+      raw = getEffectiveBackground(event.target);
     } else {
-      // Auto-detect: if click landed on text, pick text color; otherwise background
-      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-      if (range && range.startContainer.nodeType === Node.TEXT_NODE) {
-        raw = getComputedStyle(range.startContainer.parentElement).color;
+      // Auto-detect: pick text color only if click is directly over rendered text
+      const caretRange = document.caretRangeFromPoint(event.clientX, event.clientY);
+      let isOverText = false;
+      if (caretRange && caretRange.startContainer.nodeType === Node.TEXT_NODE) {
+        const textRange = document.createRange();
+        textRange.selectNodeContents(caretRange.startContainer);
+        for (const rect of textRange.getClientRects()) {
+          if (event.clientX >= rect.left && event.clientX <= rect.right &&
+              event.clientY >= rect.top && event.clientY <= rect.bottom) {
+            isOverText = true;
+            break;
+          }
+        }
+      }
+      if (isOverText) {
+        raw = getComputedStyle(caretRange.startContainer.parentElement).color;
       } else {
-        raw = getEffectiveBg(e.target);
+        raw = getEffectiveBackground(event.target);
       }
     }
     const hex = rgbToHex(raw).toUpperCase();
 
     // Save to storage with history
     chrome.storage.sync.get('colorHistory', (data) => {
-      const history = (data.colorHistory || []).filter(c => c !== hex);
+      const history = (data.colorHistory || []).filter(color => color !== hex);
       history.unshift(hex);
       chrome.storage.sync.set({
         pickedColor: hex,
@@ -186,11 +198,11 @@ export function activateEyedropper() {
     });
 
     // Show toast via template cloneNode
-    function showToast(msg) {
-      const toast = toastTpl.content.firstElementChild.cloneNode(true);
+    function showToast(message) {
+      const toast = toastTemplate.content.firstElementChild.cloneNode(true);
       toast.querySelector('.toast-swatch').style.backgroundColor = hex;
-      toast.appendChild(document.createTextNode(msg));
-      shadow.appendChild(toast);
+      toast.appendChild(document.createTextNode(message));
+      shadowRoot.appendChild(toast);
       setTimeout(() => toast.remove(), 1500);
     }
 
@@ -203,9 +215,9 @@ export function activateEyedropper() {
     cleanup();
   }
 
-  function onKeyDown(e) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
+  function onKeyDown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
       cleanup();
     }
   }
@@ -217,9 +229,9 @@ export function activateEyedropper() {
     document.removeEventListener('mouseup', blockEvent, true);
     document.removeEventListener('click', onClick, true);
     document.removeEventListener('keydown', onKeyDown, true);
-    if (hoveredEl) hoveredEl.classList.remove('__cp-highlight');
+    if (hoveredElement) hoveredElement.classList.remove('__cp-highlight');
     document.body.classList.remove('__cp-overlay');
-    style.remove();
+    pickerStyle.remove();
     marker.remove();
     // Delay removing shadow host so toast can finish displaying
     setTimeout(() => uiHost.remove(), 2000);

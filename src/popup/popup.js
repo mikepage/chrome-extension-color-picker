@@ -2,39 +2,39 @@ import { showColor, showHistory } from '../utils/ui.js';
 import { copyWithFeedback } from '../utils/clipboard.js';
 import { activateEyedropper } from '../content/eyedropper.js';
 
-const els = {
-  pickBtn: document.getElementById('pickColor'),
-  resultDiv: document.getElementById('result'),
+const elements = {
+  pickButton: document.getElementById('pickColor'),
+  resultContainer: document.getElementById('result'),
   colorSwatch: document.getElementById('colorSwatch'),
   colorHex: document.getElementById('colorHex'),
-  copyBtn: document.getElementById('copyColor'),
+  copyButton: document.getElementById('copyColor'),
   historySection: document.getElementById('historySection'),
-  historyDiv: document.getElementById('history'),
-  swatchTpl: document.getElementById('swatch-tpl'),
+  historyContainer: document.getElementById('history'),
+  swatchTemplate: document.getElementById('swatch-template'),
 };
 
 // Load last picked color and history
 chrome.storage.sync.get(['pickedColor', 'colorHistory'], (data) => {
-  if (data.pickedColor) showColor(data.pickedColor, els);
+  if (data.pickedColor) showColor(data.pickedColor, elements);
   if (data.colorHistory?.length) {
-    showHistory(data.colorHistory, els, (color) => showColor(color, els));
+    showHistory(data.colorHistory, elements, (color) => showColor(color, elements));
   }
 });
 
 // Inject eyedropper into active tab
-els.pickBtn.addEventListener('click', async () => {
+elements.pickButton.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: activateEyedropper,
     });
-  } catch (err) {
-    console.warn('Color Picker: cannot inject into this tab', err);
+  } catch (error) {
+    console.warn('Color Picker: cannot inject into this tab', error);
   }
   window.close();
 });
 
-els.copyBtn.addEventListener('click', () => {
-  copyWithFeedback(els.colorHex.textContent, els.copyBtn);
+elements.copyButton.addEventListener('click', () => {
+  copyWithFeedback(elements.colorHex.textContent, elements.copyButton);
 });

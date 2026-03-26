@@ -1,23 +1,23 @@
 import { copyWithFeedback } from './clipboard.js';
 
-export function showColor(hex, { colorSwatch, colorHex, resultDiv }) {
+export function showColor(hex, { colorSwatch, colorHex, resultContainer }) {
   colorSwatch.style.backgroundColor = hex;
   colorHex.textContent = hex.toUpperCase();
-  resultDiv.classList.remove('hidden');
+  resultContainer.classList.remove('hidden');
 }
 
-export function showHistory(colors, els, onSelect) {
-  const { historyDiv, historySection, swatchTpl, copyBtn } = els;
+export function showHistory(colors, elements, onSelect) {
+  const { historyContainer, historySection, swatchTemplate, copyButton } = elements;
   const items = colors.map((color) => {
-    const swatch = swatchTpl.content.firstElementChild.cloneNode(true);
+    const swatch = swatchTemplate.content.firstElementChild.cloneNode(true);
     swatch.style.backgroundColor = color;
     swatch.title = color.toUpperCase();
     swatch.addEventListener('click', () => {
       onSelect(color);
-      copyWithFeedback(color.toUpperCase(), copyBtn);
+      copyWithFeedback(color.toUpperCase(), copyButton);
     });
     return swatch;
   });
-  historyDiv.replaceChildren(...items);
+  historyContainer.replaceChildren(...items);
   historySection.classList.remove('hidden');
 }

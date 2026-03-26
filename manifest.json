@@ -5,7 +5,7 @@
   "manifest_version": 3,
   "author": "mikepagenl",
   "background": {
-    "service_worker": "src/background/service-worker.js",
+    "service_worker": "src/service-worker.js",
     "type": "module"
   },
   "permissions": ["storage", "activeTab", "scripting"],
