@@ -1,15 +1,15 @@
-import { showColor, showHistory } from '../utils/ui.js';
-import { copyWithFeedback } from '../utils/clipboard.js';
 import { activateEyedropper } from '../content/eyedropper.js';
+import { copyWithFeedback } from '../utils/clipboard.js';
+import { showColor, showHistory } from '../utils/ui.js';
 
 const elements = {
+  colorHex: document.getElementById('colorHex'),
+  colorSwatch: document.getElementById('colorSwatch'),
+  copyButton: document.getElementById('copyColor'),
+  historyContainer: document.getElementById('history'),
+  historySection: document.getElementById('historySection'),
   pickButton: document.getElementById('pickColor'),
   resultContainer: document.getElementById('result'),
-  colorSwatch: document.getElementById('colorSwatch'),
-  colorHex: document.getElementById('colorHex'),
-  copyButton: document.getElementById('copyColor'),
-  historySection: document.getElementById('historySection'),
-  historyContainer: document.getElementById('history'),
   swatchTemplate: document.getElementById('swatch-template'),
 };
 
@@ -26,8 +26,8 @@ elements.pickButton.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   try {
     await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
       func: activateEyedropper,
+      target: { tabId: tab.id },
     });
   } catch (error) {
     console.warn('Color Picker: cannot inject into this tab', error);

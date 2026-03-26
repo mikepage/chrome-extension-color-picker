@@ -192,8 +192,8 @@ export function activateEyedropper() {
       const history = (data.colorHistory || []).filter(color => color !== hex);
       history.unshift(hex);
       chrome.storage.sync.set({
-        pickedColor: hex,
-        colorHistory: history.slice(0, 10)
+        colorHistory: history.slice(0, 10),
+        pickedColor: hex
       });
     });
 

@@ -1,13 +1,13 @@
 import { copyWithFeedback } from './clipboard.js';
 
-export function showColor(hex, { colorSwatch, colorHex, resultContainer }) {
+export function showColor(hex, { colorHex, colorSwatch, resultContainer }) {
   colorSwatch.style.backgroundColor = hex;
   colorHex.textContent = hex.toUpperCase();
   resultContainer.classList.remove('hidden');
 }
 
 export function showHistory(colors, elements, onSelect) {
-  const { historyContainer, historySection, swatchTemplate, copyButton } = elements;
+  const { copyButton, historyContainer, historySection, swatchTemplate } = elements;
   const items = colors.map((color) => {
     const swatch = swatchTemplate.content.firstElementChild.cloneNode(true);
     swatch.style.backgroundColor = color;
