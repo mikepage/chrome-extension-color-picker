@@ -5,6 +5,7 @@ const colorHex = document.getElementById('colorHex');
 const copyBtn = document.getElementById('copyColor');
 const historySection = document.getElementById('historySection');
 const historyDiv = document.getElementById('history');
+const swatchTpl = document.getElementById('swatch-tpl');
 
 // Load last picked color and history
 chrome.storage.sync.get(['pickedColor', 'colorHistory'], (data) => {
@@ -19,10 +20,8 @@ function showColor(hex) {
 }
 
 function showHistory(colors) {
-  historyDiv.replaceChildren();
-  for (const color of colors) {
-    const swatch = document.createElement('div');
-    swatch.className = 'history-swatch';
+  const items = colors.map((color) => {
+    const swatch = swatchTpl.content.firstElementChild.cloneNode(true);
     swatch.style.backgroundColor = color;
     swatch.title = color.toUpperCase();
     swatch.addEventListener('click', () => {
@@ -31,8 +30,9 @@ function showHistory(colors) {
       copyBtn.textContent = 'Copied!';
       setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1000);
     });
-    historyDiv.appendChild(swatch);
-  }
+    return swatch;
+  });
+  historyDiv.replaceChildren(...items);
   historySection.classList.remove('hidden');
 }
 
@@ -82,8 +82,10 @@ function activateEyedropper() {
   uiHost.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;';
   document.body.appendChild(uiHost);
   const shadow = uiHost.attachShadow({ mode: 'closed' });
-  const uiStyle = document.createElement('style');
-  uiStyle.textContent = `
+
+  // Use adoptedStyleSheets for shadow DOM (no extra DOM node)
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
     .toast {
       position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; gap: 8px;
@@ -101,8 +103,12 @@ function activateEyedropper() {
       font: 12px/1 -apple-system, BlinkMacSystemFont, sans-serif;
       white-space: nowrap; pointer-events: auto;
     }
-  `;
-  shadow.appendChild(uiStyle);
+  `);
+  shadow.adoptedStyleSheets = [sheet];
+
+  // Toast template for cloneNode reuse
+  const toastTpl = document.createElement('template');
+  toastTpl.innerHTML = '<div class="toast"><div class="toast-swatch"></div></div>';
 
   // Show usage hint
   const hint = document.createElement('div');
@@ -208,14 +214,10 @@ function activateEyedropper() {
       });
     });
 
-    // Show toast in shadow DOM
+    // Show toast via template cloneNode
     function showToast(msg) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      const sw = document.createElement('div');
-      sw.className = 'toast-swatch';
-      sw.style.backgroundColor = hex;
-      toast.appendChild(sw);
+      const toast = toastTpl.content.firstElementChild.cloneNode(true);
+      toast.querySelector('.toast-swatch').style.backgroundColor = hex;
       toast.appendChild(document.createTextNode(msg));
       shadow.appendChild(toast);
       setTimeout(() => toast.remove(), 1500);
