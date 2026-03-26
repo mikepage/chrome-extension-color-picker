@@ -1,64 +1,7 @@
-const pickBtn = document.getElementById('pickColor');
-const resultDiv = document.getElementById('result');
-const colorSwatch = document.getElementById('colorSwatch');
-const colorHex = document.getElementById('colorHex');
-const copyBtn = document.getElementById('copyColor');
-const historySection = document.getElementById('historySection');
-const historyDiv = document.getElementById('history');
-const swatchTpl = document.getElementById('swatch-tpl');
-
-// Load last picked color and history
-chrome.storage.sync.get(['pickedColor', 'colorHistory'], (data) => {
-  if (data.pickedColor) showColor(data.pickedColor);
-  if (data.colorHistory?.length) showHistory(data.colorHistory);
-});
-
-function showColor(hex) {
-  colorSwatch.style.backgroundColor = hex;
-  colorHex.textContent = hex.toUpperCase();
-  resultDiv.classList.remove('hidden');
-}
-
-function showHistory(colors) {
-  const items = colors.map((color) => {
-    const swatch = swatchTpl.content.firstElementChild.cloneNode(true);
-    swatch.style.backgroundColor = color;
-    swatch.title = color.toUpperCase();
-    swatch.addEventListener('click', () => {
-      navigator.clipboard.writeText(color.toUpperCase());
-      showColor(color);
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1000);
-    });
-    return swatch;
-  });
-  historyDiv.replaceChildren(...items);
-  historySection.classList.remove('hidden');
-}
-
-// Inject eyedropper into active tab
-pickBtn.addEventListener('click', async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: activateEyedropper
-    });
-  } catch (err) {
-    console.warn('Color Picker: cannot inject into this tab', err);
-  }
-  window.close();
-});
-
-copyBtn.addEventListener('click', () => {
-  navigator.clipboard.writeText(colorHex.textContent);
-  copyBtn.textContent = 'Copied!';
-  setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1000);
-});
-
-// This function is serialized and injected into the active tab as a content script.
-// It must be entirely self-contained — no references to outer scope.
-function activateEyedropper() {
+// This function is serialized and injected into the active tab via
+// chrome.scripting.executeScript({ func }). It must be entirely
+// self-contained — no imports or references to outer scope.
+export function activateEyedropper() {
   // Prevent double-activation
   if (document.getElementById('__cp-active')) return;
 
@@ -140,8 +83,33 @@ function activateEyedropper() {
     return '#' + hex;
   }
 
-  function isSVG(el) {
-    return el instanceof SVGElement && !(el instanceof SVGSVGElement);
+  const SVG_SHAPES = 'path, rect, circle, ellipse, polygon, polyline, line';
+
+  // Find the relevant SVG element at the click point.
+  // Handles: direct SVG target, <svg> root, pointer-events:none children,
+  // and HTML wrappers containing SVGs.
+  function findSVGElement(target, x, y) {
+    // Direct SVG shape (path, rect, etc.)
+    if (target instanceof SVGElement && !(target instanceof SVGSVGElement)) {
+      return target;
+    }
+    // <svg> root — find first shape child
+    if (target instanceof SVGSVGElement) {
+      return target.querySelector(SVG_SHAPES) || target;
+    }
+    // Check elements at click point (handles z-stacking)
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) return el;
+      if (el instanceof SVGSVGElement) {
+        return el.querySelector(SVG_SHAPES) || el;
+      }
+    }
+    // Fallback: target contains SVG with pointer-events:none
+    const svg = target.querySelector('svg');
+    if (svg) {
+      return svg.querySelector(SVG_SHAPES) || svg;
+    }
+    return null;
   }
 
   // Walk up the DOM to find the first non-transparent background
@@ -188,8 +156,11 @@ function activateEyedropper() {
     e.stopPropagation();
 
     let raw;
-    if (isSVG(e.target)) {
-      raw = e.shiftKey ? getEffectiveStroke(e.target) : getEffectiveFill(e.target);
+    const svgEl = findSVGElement(e.target, e.clientX, e.clientY);
+
+    if (svgEl) {
+      // SVG element found — pick fill or stroke
+      raw = e.shiftKey ? getEffectiveStroke(svgEl) : getEffectiveFill(svgEl);
     } else if (e.shiftKey) {
       // Shift+click forces background color
       raw = getEffectiveBg(e.target);

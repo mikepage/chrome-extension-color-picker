@@ -5,11 +5,12 @@
   "manifest_version": 3,
   "author": "mikepagenl",
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
   },
   "permissions": ["storage", "activeTab", "scripting"],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "/images/icon16.png",
       "32": "/images/icon32.png",
