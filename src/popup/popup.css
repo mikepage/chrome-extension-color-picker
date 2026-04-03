@@ -63,6 +63,22 @@ body {
   user-select: all;
 }
 
+.format-btn {
+  padding: 4px 6px;
+  background: #e8e8e8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #555;
+  letter-spacing: 0.3px;
+}
+
+.format-btn:hover {
+  background: #ddd;
+}
+
 .copy-btn {
   padding: 4px 8px;
   background: #fff;

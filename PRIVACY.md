@@ -1,6 +1,6 @@
 # Privacy Policy — Color Picker
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-04-03
 
 ## Overview
 
@@ -12,15 +12,15 @@ This extension collects **no personal data**. It does not track browsing activit
 
 ## Local storage
 
-Picked colors are stored locally in `chrome.storage.sync` for the sole purpose of displaying your color history in the extension popup. This data stays within your browser and is never transmitted externally.
+Picked colors and your preferred color format (HEX, RGB, or HSL) are stored locally in `chrome.storage.sync` for the sole purpose of displaying your color history and format preference in the extension popup. This data stays within your browser and is never transmitted externally.
 
 ## Permissions
 
 | Permission | Purpose |
 |---|---|
 | `storage` | Store your last 10 picked colors locally for the color history feature. |
-| `activeTab` | Access the current tab to inject the eyedropper when you click "Pick Color". Only the tab you interact with is accessed. |
-| `scripting` | Inject the eyedropper script into the active tab to highlight elements and read their computed color. |
+| `activeTab` | Access the current tab to inject the eyedropper when you click "Pick Color", and to capture a tab screenshot when picking colors from images. Only the tab you interact with is accessed. Screenshots are processed locally and never stored or transmitted. |
+| `scripting` | Inject the eyedropper script into the active tab to highlight elements and read their computed color or pixel color from images. |
 
 ## Third parties
 

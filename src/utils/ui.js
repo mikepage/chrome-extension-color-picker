@@ -1,8 +1,9 @@
 import { copyWithFeedback } from './clipboard.js';
+import { formatColor } from './color.js';
 
-export function showColor(hex, { colorHex, colorSwatch, resultContainer }) {
+export function showColor(hex, format, { colorHex, colorSwatch, resultContainer }) {
   colorSwatch.style.backgroundColor = hex;
-  colorHex.textContent = hex.toUpperCase();
+  colorHex.textContent = formatColor(hex, format);
   resultContainer.classList.remove('hidden');
 }
 
@@ -14,7 +15,6 @@ export function showHistory(colors, elements, onSelect) {
     swatch.title = color.toUpperCase();
     swatch.addEventListener('click', () => {
       onSelect(color);
-      copyWithFeedback(color.toUpperCase(), copyButton);
     });
     return swatch;
   });

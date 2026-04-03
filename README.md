@@ -8,12 +8,14 @@ Browser DevTools let you inspect colors, but it takes multiple clicks to navigat
 
 ## Features
 
-- **Click to pick** — auto-detects whether you clicked on text or background and picks the right color
+- **Click to pick** — auto-detects whether you clicked on text, background, or image and picks the right color
+- **Image color picking** — picks actual pixel colors from images, canvas, video, and CSS background images
+- **Multiple formats** — switch between HEX, RGB, and HSL in the popup; preference is remembered
 - **SVG support** — picks fill and stroke colors from SVG elements, including icons with `pointer-events: none`
-- **Shift+click** — force background color mode when clicking over text
+- **Shift+click** — force background color mode when clicking over text or images
 - **Color history** — stores your last 10 picked colors for quick access
-- **Copy to clipboard** — colors are copied automatically on pick
-- **No permissions abuse** — uses only `activeTab` and `scripting`, no background data collection
+- **Copy to clipboard** — colors are copied automatically on pick in your chosen format
+- **No permissions abuse** — uses only `activeTab`, `scripting`, and `storage`; no background data collection
 
 ## Usage
 
@@ -27,9 +29,13 @@ Browser DevTools let you inspect colors, but it takes multiple clicks to navigat
 |---|---|
 | Click on text | Text color |
 | Click on background | Background color |
+| Click on image | Pixel color from image |
 | Click on SVG | Fill color |
 | Shift+click | Force background color |
+| Shift+click on SVG | Stroke color |
 | Esc | Cancel picker |
+
+In the popup, click the format button (HEX/RGB/HSL) to cycle through output formats. Your preference is saved and also applies to the eyedropper toast.
 
 ## Install from source
 
@@ -44,10 +50,11 @@ Browser DevTools let you inspect colors, but it takes multiple clicks to navigat
 manifest.json
 images/
 src/
-  service-worker.js          Service worker (extension lifecycle)
+  service-worker.js          Service worker (lifecycle + tab capture)
   content/eyedropper.js      Injected eyedropper (self-contained)
   popup/popup.html|css|js    Popup UI
   utils/clipboard.js         Clipboard helper
+  utils/color.js             Color format conversions (HEX/RGB/HSL)
   utils/ui.js                Popup DOM helpers
 ```
 
@@ -70,7 +77,7 @@ This extension **does not collect, transmit, or store any user data** outside of
 | Permission | Justification |
 |---|---|
 | `storage` | Stores the user's last 10 picked colors locally in chrome.storage.sync so they appear in the popup's color history. No data is transmitted externally. |
-| `activeTab` | Needed to access the current tab when the user clicks "Pick Color" in the popup. The extension injects the eyedropper script into the active tab to detect colors of hovered elements. Access is only granted for the tab the user explicitly interacts with. |
+| `activeTab` | Needed to access the current tab when the user clicks "Pick Color" in the popup. The extension injects the eyedropper script into the active tab to detect colors of hovered elements. Also used to capture a tab screenshot when picking colors from images. Access is only granted for the tab the user explicitly interacts with. |
 | `scripting` | Used to inject the eyedropper content script (content/eyedropper.js) into the active tab when the user initiates color picking. The script highlights elements on hover and reads their computed color on click. |
 
 ## License

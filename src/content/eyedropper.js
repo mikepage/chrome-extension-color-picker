@@ -56,7 +56,7 @@ export function activateEyedropper() {
   // Show usage hint
   const hintElement = document.createElement('div');
   hintElement.className = 'hint';
-  hintElement.textContent = 'Click text \u2192 text color \u00b7 Click bg \u2192 bg color \u00b7 Shift \u2192 force bg \u00b7 Esc \u2192 cancel';
+  hintElement.textContent = 'Click text \u2192 text color \u00b7 Click bg \u2192 bg color \u00b7 Click image \u2192 pixel color \u00b7 Shift \u2192 force bg \u00b7 Esc \u2192 cancel';
   shadowRoot.appendChild(hintElement);
 
   let hoveredElement = null;
@@ -81,6 +81,39 @@ export function activateEyedropper() {
       return '#' + hex + Math.round(alpha * 255).toString(16).padStart(2, '0');
     }
     return '#' + hex;
+  }
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+  }
+
+  function hexToHsl(hex) {
+    let { r, g, b } = hexToRgb(hex);
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    if (max === min) return { h: 0, s: 0, l: Math.round(l * 100) };
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    let h;
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+
+  function formatColor(hex, format) {
+    const baseHex = hex.length > 7 ? hex.slice(0, 7) : hex;
+    if (format === 'RGB') {
+      const { r, g, b } = hexToRgb(baseHex);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+    if (format === 'HSL') {
+      const { h, s, l } = hexToHsl(baseHex);
+      return `hsl(${h}, ${s}%, ${l}%)`;
+    }
+    return hex.toUpperCase();
   }
 
   const SVG_SHAPES = 'path, rect, circle, ellipse, polygon, polyline, line';
@@ -144,6 +177,46 @@ export function activateEyedropper() {
     return getComputedStyle(element).color;
   }
 
+  // Detect image-like elements at the click point (img, canvas, video, CSS background-image)
+  function findImageAtPoint(x, y) {
+    for (const el of document.elementsFromPoint(x, y)) {
+      if (el === uiHost || el === marker) continue;
+      if (el.tagName === 'IMG' || el.tagName === 'CANVAS' || el.tagName === 'VIDEO') return el;
+      const bgImage = getComputedStyle(el).backgroundImage;
+      if (bgImage && bgImage !== 'none' && bgImage.includes('url(')) return el;
+    }
+    return null;
+  }
+
+  // Capture visible tab screenshot and read pixel color at (x, y)
+  function pickColorFromScreenshot(x, y) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'captureTab' }, (dataUrl) => {
+        if (chrome.runtime.lastError || !dataUrl) {
+          reject(chrome.runtime.lastError || new Error('Capture failed'));
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          // captureVisibleTab captures at device pixel ratio
+          const dpr = img.width / window.innerWidth;
+          const px = Math.min(Math.round(x * dpr), img.width - 1);
+          const py = Math.min(Math.round(y * dpr), img.height - 1);
+          const [r, g, b, a] = ctx.getImageData(px, py, 1, 1).data;
+          const hex = '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+          resolve(a < 255 ? hex + Math.round(a).toString(16).padStart(2, '0') : hex);
+        };
+        img.onerror = () => reject(new Error('Failed to load screenshot'));
+        img.src = dataUrl;
+      });
+    });
+  }
+
   // Block mousedown/mouseup so page JS handlers on buttons/links don't fire
   function blockEvent(event) {
     event.preventDefault();
@@ -151,19 +224,22 @@ export function activateEyedropper() {
   }
 
   // Pick color on click — preventDefault here stops link navigation
-  function onClick(event) {
+  async function onClick(event) {
     event.preventDefault();
     event.stopPropagation();
 
     let raw;
+    let hex;
     const svgElement = findSVGElement(event.target, event.clientX, event.clientY);
 
     if (svgElement) {
       // SVG element found — pick fill or stroke
       raw = event.shiftKey ? getEffectiveStroke(svgElement) : getEffectiveFill(svgElement);
+      hex = rgbToHex(raw).toUpperCase();
     } else if (event.shiftKey) {
       // Shift+click forces background color
       raw = getEffectiveBackground(event.target);
+      hex = rgbToHex(raw).toUpperCase();
     } else {
       // Auto-detect: pick text color only if click is directly over rendered text
       const caretRange = document.caretRangeFromPoint(event.clientX, event.clientY);
@@ -181,21 +257,40 @@ export function activateEyedropper() {
       }
       if (isOverText) {
         raw = getComputedStyle(caretRange.startContainer.parentElement).color;
+        hex = rgbToHex(raw).toUpperCase();
       } else {
-        raw = getEffectiveBackground(event.target);
+        // Check for image at click point — pick actual pixel color via screenshot
+        const imageAtPoint = findImageAtPoint(event.clientX, event.clientY);
+        if (imageAtPoint) {
+          try {
+            // Remove highlight before capture so it doesn't contaminate the screenshot
+            if (hoveredElement) hoveredElement.classList.remove('__cp-highlight');
+            hex = (await pickColorFromScreenshot(event.clientX, event.clientY)).toUpperCase();
+          } catch {
+            // Fall back to CSS background if screenshot fails
+            raw = getEffectiveBackground(event.target);
+            hex = rgbToHex(raw).toUpperCase();
+          }
+        } else {
+          raw = getEffectiveBackground(event.target);
+          hex = rgbToHex(raw).toUpperCase();
+        }
       }
     }
-    const hex = rgbToHex(raw).toUpperCase();
 
-    // Save to storage with history
-    chrome.storage.sync.get('colorHistory', (data) => {
-      const history = (data.colorHistory || []).filter(color => color !== hex);
-      history.unshift(hex);
-      chrome.storage.sync.set({
-        colorHistory: history.slice(0, 10),
-        pickedColor: hex
-      });
+    // Save to storage and copy in the user's preferred format
+    const storageData = await new Promise(resolve =>
+      chrome.storage.sync.get(['colorHistory', 'colorFormat'], resolve)
+    );
+    const history = (storageData.colorHistory || []).filter(color => color !== hex);
+    history.unshift(hex);
+    chrome.storage.sync.set({
+      colorHistory: history.slice(0, 10),
+      pickedColor: hex
     });
+
+    const format = storageData.colorFormat || 'HEX';
+    const displayValue = formatColor(hex, format);
 
     // Show toast via template cloneNode
     function showToast(message) {
@@ -206,10 +301,10 @@ export function activateEyedropper() {
       setTimeout(() => toast.remove(), 1500);
     }
 
-    // Copy to clipboard with feedback
-    navigator.clipboard.writeText(hex).then(
-      () => showToast('Copied ' + hex),
-      () => showToast(hex + ' (copy failed)')
+    // Copy formatted value to clipboard, show toast, then clean up
+    await navigator.clipboard.writeText(displayValue).then(
+      () => showToast('Copied ' + displayValue),
+      () => showToast(displayValue + ' (copy failed)')
     );
 
     cleanup();
