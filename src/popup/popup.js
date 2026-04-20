@@ -47,6 +47,7 @@ chrome.storage.sync.get(['pickedColor', 'colorHistory', 'colorFormat'], (data) =
 // Inject eyedropper into active tab
 elements.pickButton.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
   try {
     await chrome.scripting.executeScript({
       func: activateEyedropper,

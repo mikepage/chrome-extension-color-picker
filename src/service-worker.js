@@ -1,5 +1,7 @@
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.set({ colorHistory: [] });
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.storage.sync.set({ colorHistory: [] });
+  }
 });
 
 // Handle screenshot requests from the eyedropper content script

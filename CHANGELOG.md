@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.1] - 2026-04-20
+
+### Fixed
+
+- Color history no longer wiped on extension updates — `onInstalled` now only initializes on first install
+- Clipboard "Copied!" feedback now reflects actual write success/failure
+- Pick button no longer throws when no active tab is found
+- Removed unused `copyWithFeedback` import from `ui.js`
+
 ## [1.1] - 2026-04-03
 
 ### Added

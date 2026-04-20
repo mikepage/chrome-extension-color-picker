@@ -1,4 +1,3 @@
-import { copyWithFeedback } from './clipboard.js';
 import { formatColor } from './color.js';
 
 export function showColor(hex, format, { colorHex, colorSwatch, resultContainer }) {
