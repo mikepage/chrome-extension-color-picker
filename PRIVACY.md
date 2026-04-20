@@ -1,6 +1,6 @@
 # Privacy Policy — Color Picker
 
-**Last updated:** 2026-04-03
+**Last updated:** 2026-04-20
 
 ## Overview
 
